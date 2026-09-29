@@ -1,0 +1,142 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  RECEPTIONIST
+  INSTRUCTOR
+  MEMBER
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  TRIALING
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CREDIT_CARD
+  PIX
+  BOLETO
+}
+
+model User {
+  id           String        @id @default(uuid())
+  name         String
+  email        String        @unique
+  cpf          String?       @unique
+  phone        String?
+  passwordHash String
+  role         Role          @default(MEMBER)
+  
+  // Identificador biométrico / facial integrado com o dispositivo/serviço
+  facialId     String?       @unique
+  facialPhotoUrl String?
+  
+  subscriptions Subscription[]
+  checkIns      CheckIn[]
+  payments      Payment[]
+  
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@map("users")
+}
+
+model Plan {
+  id           String         @id @default(uuid())
+  name         String
+  description  String?
+  price        Decimal        @db.Decimal(10, 2)
+  durationDays Int            @default(30)
+  active       Boolean        @default(true)
+  
+  subscriptions Subscription[]
+  
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@map("plans")
+}
+
+model Subscription {
+  id                 String             @id @default(uuid())
+  userId             String
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId             String
+  plan               Plan               @relation(fields: [planId], references: [id])
+  
+  status             SubscriptionStatus @default(ACTIVE)
+  startDate          DateTime           @default(now())
+  currentPeriodEnd   DateTime
+  cancelAtPeriodEnd  Boolean            @default(false)
+  
+  // Referências para o gateway de pagamento (Stripe, Asaas, MercadoPago, etc.)
+  gatewayCustomerId  String?
+  gatewaySubId       String?            @unique
+  
+  payments           Payment[]
+  
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@map("subscriptions")
+}
+
+model Payment {
+  id              String         @id @default(uuid())
+  userId          String
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscriptionId  String?
+  subscription    Subscription?  @relation(fields: [subscriptionId], references: [id])
+  
+  amount          Decimal        @db.Decimal(10, 2)
+  status          PaymentStatus  @default(PENDING)
+  method          PaymentMethod  @default(CREDIT_CARD)
+  
+  gatewayPaymentId String?       @unique
+  pixQrCode        String?
+  pixCopyPaste     String?
+  paidAt           DateTime?
+  
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([userId])
+  @@map("payments")
+}
+
+model CheckIn {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  deviceId   String?  // Identificador da catraca ou leitor
+  status     String   @default("ALLOWED") // ALLOWED, DENIED
+  reason     String?  // Ex: "Inadimplente", "Reconhecimento confirmado"
+  
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("check_ins")
+}
