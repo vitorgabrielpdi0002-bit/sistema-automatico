@@ -43,11 +43,19 @@ model User {
   email        String        @unique
   cpf          String?       @unique
   phone        String?
+  birthDate    DateTime?
+  gender       String?
   passwordHash String
   role         Role          @default(MEMBER)
   
+  // Segurança e Ficha Médica
+  emergencyContact String?
+  emergencyPhone   String?
+  medicalNotes     String?
+  dueDay           Int?          @default(10)
+  
   // Identificador biométrico / facial integrado com o dispositivo/serviço
-  facialId     String?       @unique
+  facialId       String?       @unique
   facialPhotoUrl String?
   
   subscriptions Subscription[]

@@ -1,4 +1,4 @@
-import { IsString, IsEmail, IsOptional, MinLength } from 'class-validator';
+import { IsString, IsEmail, IsOptional, MinLength, IsInt, Min, Max } from 'class-validator';
 
 export class CreateMemberDto {
   @IsString()
@@ -15,6 +15,32 @@ export class CreateMemberDto {
   @IsOptional()
   @IsString()
   phone?: string;
+
+  @IsOptional()
+  @IsString()
+  birthDate?: string;
+
+  @IsOptional()
+  @IsString()
+  gender?: string;
+
+  @IsOptional()
+  @IsString()
+  emergencyContact?: string;
+
+  @IsOptional()
+  @IsString()
+  emergencyPhone?: string;
+
+  @IsOptional()
+  @IsString()
+  medicalNotes?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(31)
+  dueDay?: number;
 
   @IsOptional()
   @IsString()

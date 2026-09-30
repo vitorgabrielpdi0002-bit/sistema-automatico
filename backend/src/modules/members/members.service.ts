@@ -27,6 +27,12 @@ export class MembersService {
         email: dto.email,
         cpf: dto.cpf,
         phone: dto.phone,
+        birthDate: dto.birthDate ? new Date(dto.birthDate) : undefined,
+        gender: dto.gender,
+        emergencyContact: dto.emergencyContact,
+        emergencyPhone: dto.emergencyPhone,
+        medicalNotes: dto.medicalNotes,
+        dueDay: dto.dueDay || 10,
         passwordHash: 'default_hash_for_member', // Pode ser gerado ou redefinido no primeiro acesso
         facialId: dto.facialId,
         facialPhotoUrl: dto.facialPhotoUrl,
