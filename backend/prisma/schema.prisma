@@ -54,6 +54,18 @@ model User {
   medicalNotes     String?
   dueDay           Int?          @default(10)
   
+  // Endereço Residencial
+  postalCode   String?
+  street       String?
+  number       String?
+  complement   String?
+  neighborhood String?
+  city         String?
+  state        String?
+
+  // Status cadastral (Habilitado / Desabilitado)
+  active       Boolean       @default(true)
+  
   // Identificador biométrico / facial integrado com o dispositivo/serviço
   facialId       String?       @unique
   facialPhotoUrl String?

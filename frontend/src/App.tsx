@@ -21,7 +21,11 @@ import {
   Upload,
   Camera,
   Check,
-  AlertTriangle
+  AlertTriangle,
+  MapPin,
+  Trash2,
+  UserX,
+  Power
 } from 'lucide-react';
 
 interface Member {
@@ -32,11 +36,22 @@ interface Member {
   phone: string;
   birthDate?: string;
   gender?: string;
+  // Endereço
+  postalCode?: string;
+  street?: string;
+  number?: string;
+  complement?: string;
+  neighborhood?: string;
+  city?: string;
+  state?: string;
+  // Emergência e Saúde
   emergencyContact?: string;
   emergencyPhone?: string;
   medicalNotes?: string;
+  // Plano
   plan: string;
   status: 'ACTIVE' | 'PAST_DUE' | 'CANCELED';
+  active: boolean; // Habilitado / Desabilitado
   facialRegistered: boolean;
   avatarUrl: string;
   dueDate: string;
@@ -62,11 +77,19 @@ const initialMembers: Member[] = [
     phone: '(11) 98765-4321',
     birthDate: '1992-05-14',
     gender: 'Masculino',
+    postalCode: '01310-100',
+    street: 'Av. Paulista',
+    number: '1000',
+    complement: 'Apto 42',
+    neighborhood: 'Bela Vista',
+    city: 'São Paulo',
+    state: 'SP',
     emergencyContact: 'Ana Paula (Esposa)',
     emergencyPhone: '(11) 97654-3210',
     medicalNotes: 'Nenhuma restrição declarada.',
     plan: 'Plano Black Anual',
     status: 'ACTIVE',
+    active: true,
     facialRegistered: true,
     avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
     dueDate: '2026-10-15',
@@ -80,11 +103,19 @@ const initialMembers: Member[] = [
     phone: '(21) 99887-1122',
     birthDate: '1996-11-20',
     gender: 'Feminino',
+    postalCode: '22041-001',
+    street: 'Rua Barata Ribeiro',
+    number: '350',
+    complement: '',
+    neighborhood: 'Copacabana',
+    city: 'Rio de Janeiro',
+    state: 'RJ',
     emergencyContact: 'Marcos Souza (Pai)',
     emergencyPhone: '(21) 98877-6655',
     medicalNotes: 'Sensibilidade no joelho direito (menisco).',
     plan: 'Plano Mensal Gold',
     status: 'PAST_DUE',
+    active: true,
     facialRegistered: true,
     avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80',
     dueDate: '2026-09-25',
@@ -98,11 +129,19 @@ const initialMembers: Member[] = [
     phone: '(31) 97123-4567',
     birthDate: '1988-08-30',
     gender: 'Masculino',
+    postalCode: '30140-061',
+    street: 'Rua dos Inconfidentes',
+    number: '80',
+    complement: 'Bloco B',
+    neighborhood: 'Savassi',
+    city: 'Belo Horizonte',
+    state: 'MG',
     emergencyContact: 'Juliana Lima (Irmã)',
     emergencyPhone: '(31) 98111-2233',
     medicalNotes: 'Hipertensão leve controlada com medicação.',
     plan: 'Plano Semestral',
     status: 'ACTIVE',
+    active: false, // Desabilitado
     facialRegistered: false,
     avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80',
     dueDate: '2026-11-01',
@@ -140,7 +179,7 @@ export default function App() {
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formStep, setFormStep] = useState<1 | 2 | 3 | 4>(1);
+  const [formStep, setFormStep] = useState<1 | 2 | 3 | 4 | 5>(1);
 
   // Form Fields
   const [formData, setFormData] = useState({
@@ -150,9 +189,19 @@ export default function App() {
     phone: '',
     birthDate: '',
     gender: 'Masculino',
+    // Endereço
+    postalCode: '',
+    street: '',
+    number: '',
+    complement: '',
+    neighborhood: '',
+    city: '',
+    state: '',
+    // Emergência
     emergencyContact: '',
     emergencyPhone: '',
     medicalNotes: '',
+    // Plano
     plan: 'Plano Black Anual',
     dueDay: 10,
     paymentMethod: 'CREDIT_CARD',
@@ -161,17 +210,52 @@ export default function App() {
   });
 
   const simulateTurnstile = (member: Member) => {
-    const isAllowed = member.status === 'ACTIVE';
+    let isAllowed = false;
+    let reason = '';
+
+    if (!member.active) {
+      isAllowed = false;
+      reason = 'Acesso Bloqueado • Matrícula Desabilitada';
+    } else if (member.status === 'PAST_DUE') {
+      isAllowed = false;
+      reason = 'Acesso Bloqueado • Mensalidade Pendente';
+    } else {
+      isAllowed = true;
+      reason = 'Acesso Liberado • Biometria Confirmada';
+    }
+
     const newLog: CheckInLog = {
       id: `log-${Date.now()}`,
       memberName: member.name,
       timestamp: new Date().toLocaleTimeString(),
       status: isAllowed ? 'ALLOWED' : 'DENIED',
-      reason: isAllowed ? 'Acesso Liberado • Biometria Confirmada' : 'Acesso Bloqueado • Inadimplência',
+      reason,
       device: 'Catraca 01',
       avatarUrl: member.avatarUrl
     };
     setLogs(prev => [newLog, ...prev]);
+  };
+
+  const handleToggleMemberStatus = (id: string) => {
+    setMembers(prev => prev.map(m => {
+      if (m.id === id) {
+        const updated = { ...m, active: !m.active };
+        if (selectedMember && selectedMember.id === id) {
+          setSelectedMember(updated);
+        }
+        return updated;
+      }
+      return m;
+    }));
+  };
+
+  const handleDeleteMember = (id: string) => {
+    if (confirm('Tem certeza que deseja excluir esta matrícula do sistema?')) {
+      setMembers(prev => prev.filter(m => m.id !== id));
+      if (selectedMember?.id === id) {
+        setSelectedMember(null);
+      }
+    }
   };
 
   const handleSaveMember = (e: React.FormEvent) => {
@@ -186,11 +270,19 @@ export default function App() {
       phone: formData.phone || '(00) 00000-0000',
       birthDate: formData.birthDate,
       gender: formData.gender,
+      postalCode: formData.postalCode,
+      street: formData.street,
+      number: formData.number,
+      complement: formData.complement,
+      neighborhood: formData.neighborhood,
+      city: formData.city,
+      state: formData.state,
       emergencyContact: formData.emergencyContact,
       emergencyPhone: formData.emergencyPhone,
       medicalNotes: formData.medicalNotes || 'Nenhuma restrição informada',
       plan: formData.plan,
       status: 'ACTIVE',
+      active: true,
       facialRegistered: formData.facialCaptured,
       avatarUrl: formData.facialPhotoUrl,
       dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -207,6 +299,13 @@ export default function App() {
       phone: '',
       birthDate: '',
       gender: 'Masculino',
+      postalCode: '',
+      street: '',
+      number: '',
+      complement: '',
+      neighborhood: '',
+      city: '',
+      state: '',
       emergencyContact: '',
       emergencyPhone: '',
       medicalNotes: '',
@@ -366,8 +465,8 @@ export default function App() {
 
                 <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 flex items-center justify-between">
                   <div>
-                    <span className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">Bloqueios por Inadimplência</span>
-                    <p className="text-2xl font-bold text-rose-400 mt-1">2</p>
+                    <span className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">Bloqueios no Acesso</span>
+                    <p className="text-2xl font-bold text-rose-400 mt-1">3</p>
                   </div>
                   <div className="w-10 h-10 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center">
                     <ShieldAlert className="w-5 h-5" />
@@ -392,7 +491,7 @@ export default function App() {
                 <div className="flex items-center justify-between mb-3">
                   <div>
                     <h2 className="text-xs font-semibold text-white uppercase tracking-wider">Simulador de Passagem na Catraca</h2>
-                    <p className="text-[11px] text-slate-400">Clique em um aluno para simular a leitura do rosto e abertura do relé:</p>
+                    <p className="text-[11px] text-slate-400">Clique em um aluno para simular a leitura facial e validação de regras:</p>
                   </div>
                 </div>
 
@@ -406,8 +505,8 @@ export default function App() {
                       <img src={m.avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" />
                       <div className="min-w-0 flex-1">
                         <p className="font-medium text-slate-200 truncate">{m.name}</p>
-                        <p className={`text-[10px] ${m.status === 'ACTIVE' ? 'text-emerald-400' : 'text-rose-400'}`}>
-                          {m.status === 'ACTIVE' ? 'Plano Ativo' : 'Inadimplente (Bloquear)'}
+                        <p className={`text-[10px] ${!m.active ? 'text-amber-400 font-semibold' : m.status === 'ACTIVE' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          {!m.active ? 'Desabilitado (Bloquear)' : m.status === 'ACTIVE' ? 'Plano Ativo' : 'Atrasado (Bloquear)'}
                         </p>
                       </div>
                     </button>
@@ -460,7 +559,7 @@ export default function App() {
                   <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
-                    placeholder="Pesquisar por nome, CPF ou email..."
+                    placeholder="Pesquisar por nome, CPF, cidade ou email..."
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
                     className="w-full pl-8 pr-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500"
@@ -475,12 +574,11 @@ export default function App() {
                   <thead>
                     <tr className="border-b border-slate-800 text-slate-400 uppercase text-[10px] tracking-wider font-semibold">
                       <th className="pb-2 px-3">Aluno</th>
-                      <th className="pb-2 px-3">Contato / WhatsApp</th>
+                      <th className="pb-2 px-3">Cidade / Contato</th>
                       <th className="pb-2 px-3">Plano & Vencimento</th>
-                      <th className="pb-2 px-3">Emergência</th>
-                      <th className="pb-2 px-3">Status</th>
+                      <th className="pb-2 px-3">Status Matrícula</th>
                       <th className="pb-2 px-3">Biometria</th>
-                      <th className="pb-2 px-3 text-right">Ficha</th>
+                      <th className="pb-2 px-3 text-right">Ações</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/60">
@@ -494,19 +592,19 @@ export default function App() {
                           </div>
                         </td>
                         <td className="py-2.5 px-3">
-                          <p className="text-slate-300">{member.phone}</p>
-                          <p className="text-[10px] text-slate-400">{member.email}</p>
+                          <p className="text-slate-300">{member.city ? `${member.city} - ${member.state}` : 'Endereço não inf.'}</p>
+                          <p className="text-[10px] text-slate-400">{member.phone}</p>
                         </td>
                         <td className="py-2.5 px-3">
                           <p className="text-slate-300 font-medium">{member.plan}</p>
                           <p className="text-[10px] text-slate-400">Dia {member.dueDay} (Vence {member.dueDate})</p>
                         </td>
                         <td className="py-2.5 px-3">
-                          <p className="text-slate-300 text-[11px]">{member.emergencyContact || 'Não informado'}</p>
-                          <p className="text-[10px] text-slate-500">{member.emergencyPhone}</p>
-                        </td>
-                        <td className="py-2.5 px-3">
-                          {member.status === 'ACTIVE' ? (
+                          {!member.active ? (
+                            <span className="px-2 py-0.5 text-[10px] rounded bg-slate-800 text-slate-400 font-semibold border border-slate-700">
+                              Desabilitado
+                            </span>
+                          ) : member.status === 'ACTIVE' ? (
                             <span className="px-2 py-0.5 text-[10px] rounded bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/20">
                               Ativo
                             </span>
@@ -526,12 +624,32 @@ export default function App() {
                           )}
                         </td>
                         <td className="py-2.5 px-3 text-right">
-                          <button
-                            onClick={() => setSelectedMember(member)}
-                            className="text-[11px] text-slate-300 hover:text-emerald-400 px-2 py-1 bg-slate-900 border border-slate-800 rounded hover:border-slate-700"
-                          >
-                            Ver Detalhes
-                          </button>
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => setSelectedMember(member)}
+                              className="text-[11px] text-slate-300 hover:text-emerald-400 px-2 py-1 bg-slate-900 border border-slate-800 rounded hover:border-slate-700"
+                            >
+                              Ficha
+                            </button>
+                            <button
+                              onClick={() => handleToggleMemberStatus(member.id)}
+                              title={member.active ? 'Desabilitar Aluno' : 'Reativar Aluno'}
+                              className={`p-1 rounded border text-[11px] ${
+                                member.active 
+                                  ? 'border-slate-800 hover:border-amber-500 text-slate-400 hover:text-amber-400' 
+                                  : 'border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10'
+                              }`}
+                            >
+                              <Power className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteMember(member.id)}
+                              title="Excluir Aluno"
+                              className="p-1 rounded border border-slate-800 hover:border-rose-500 text-slate-400 hover:text-rose-400 text-[11px]"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -613,7 +731,7 @@ export default function App() {
         </main>
       </div>
 
-      {/* ── MODAL: MATRÍCULA COMPLETA DO ALUNO (MULTI-ETAPAS) ─────────── */}
+      {/* ── MODAL: MATRÍCULA COMPLETA DO ALUNO (5 ETAPAS) ─────────────── */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-slate-950 border border-slate-800 rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl flex flex-col">
@@ -621,7 +739,7 @@ export default function App() {
             <div className="p-5 border-b border-slate-800 flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-bold text-white">Nova Matrícula de Aluno</h3>
-                <p className="text-[11px] text-slate-400">Preencha os dados cadastrais, saúde e biometria</p>
+                <p className="text-[11px] text-slate-400">Cadastro completo com endereço e biometria</p>
               </div>
               <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-white">
                 <X className="w-4 h-4" />
@@ -646,7 +764,7 @@ export default function App() {
                   formStep === 2 ? 'border-emerald-500 text-emerald-400 bg-slate-900' : 'border-transparent text-slate-400'
                 }`}
               >
-                2. Emergência
+                2. Endereço
               </button>
               <button
                 type="button"
@@ -655,7 +773,7 @@ export default function App() {
                   formStep === 3 ? 'border-emerald-500 text-emerald-400 bg-slate-900' : 'border-transparent text-slate-400'
                 }`}
               >
-                3. Plano
+                3. Saúde
               </button>
               <button
                 type="button"
@@ -664,7 +782,16 @@ export default function App() {
                   formStep === 4 ? 'border-emerald-500 text-emerald-400 bg-slate-900' : 'border-transparent text-slate-400'
                 }`}
               >
-                4. Biometria
+                4. Plano
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormStep(5)}
+                className={`flex-1 py-2.5 font-medium border-b-2 transition-colors ${
+                  formStep === 5 ? 'border-emerald-500 text-emerald-400 bg-slate-900' : 'border-transparent text-slate-400'
+                }`}
+              >
+                5. Biometria
               </button>
             </div>
 
@@ -748,13 +875,98 @@ export default function App() {
                 </div>
               )}
 
-              {/* ETAPA 2: EMERGÊNCIA & SAÚDE */}
+              {/* ETAPA 2: ENDEREÇO RESIDENCIAL */}
               {formStep === 2 && (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="col-span-1">
+                      <label className="block text-slate-300 font-medium mb-1">CEP</label>
+                      <input
+                        type="text"
+                        placeholder="00000-000"
+                        value={formData.postalCode}
+                        onChange={e => setFormData({ ...formData, postalCode: e.target.value })}
+                        className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-slate-100 focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-slate-300 font-medium mb-1">Rua / Logradouro</label>
+                      <input
+                        type="text"
+                        placeholder="Ex: Av. Paulista"
+                        value={formData.street}
+                        onChange={e => setFormData({ ...formData, street: e.target.value })}
+                        className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-slate-100 focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-slate-300 font-medium mb-1">Número</label>
+                      <input
+                        type="text"
+                        placeholder="123"
+                        value={formData.number}
+                        onChange={e => setFormData({ ...formData, number: e.target.value })}
+                        className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-slate-100 focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-slate-300 font-medium mb-1">Complemento</label>
+                      <input
+                        type="text"
+                        placeholder="Apto 102, Bloco C"
+                        value={formData.complement}
+                        onChange={e => setFormData({ ...formData, complement: e.target.value })}
+                        className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-slate-100 focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-slate-300 font-medium mb-1">Bairro</label>
+                      <input
+                        type="text"
+                        placeholder="Centro"
+                        value={formData.neighborhood}
+                        onChange={e => setFormData({ ...formData, neighborhood: e.target.value })}
+                        className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-slate-100 focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-300 font-medium mb-1">Cidade</label>
+                      <input
+                        type="text"
+                        placeholder="São Paulo"
+                        value={formData.city}
+                        onChange={e => setFormData({ ...formData, city: e.target.value })}
+                        className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-slate-100 focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-300 font-medium mb-1">Estado</label>
+                      <input
+                        type="text"
+                        placeholder="SP"
+                        maxLength={2}
+                        value={formData.state}
+                        onChange={e => setFormData({ ...formData, state: e.target.value.toUpperCase() })}
+                        className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-slate-100 focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ETAPA 3: EMERGÊNCIA & SAÚDE */}
+              {formStep === 3 && (
                 <div className="space-y-3">
                   <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-start gap-2.5">
                     <HeartPulse className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                     <p className="text-[11px] text-amber-300/90 leading-relaxed">
-                      Esses dados são essenciais para assistência imediata caso o aluno sofra algum mal-estar dentro da academia.
+                      Esses dados são essenciais para assistência imediata caso o aluno sofra algum mal-estar durante o treino.
                     </p>
                   </div>
 
@@ -794,8 +1006,8 @@ export default function App() {
                 </div>
               )}
 
-              {/* ETAPA 3: PLANO & COBRANÇA */}
-              {formStep === 3 && (
+              {/* ETAPA 4: PLANO & COBRANÇA */}
+              {formStep === 4 && (
                 <div className="space-y-3">
                   <div>
                     <label className="block text-slate-300 font-medium mb-1">Plano Escolhido</label>
@@ -850,8 +1062,8 @@ export default function App() {
                 </div>
               )}
 
-              {/* ETAPA 4: BIOMETRIA FACIAL */}
-              {formStep === 4 && (
+              {/* ETAPA 5: BIOMETRIA FACIAL */}
+              {formStep === 5 && (
                 <div className="space-y-4 text-center">
                   <div>
                     <label className="block text-slate-300 font-medium mb-1">Captura de Biometria Facial</label>
@@ -923,7 +1135,7 @@ export default function App() {
                   <div></div>
                 )}
 
-                {formStep < 4 ? (
+                {formStep < 5 ? (
                   <button
                     type="button"
                     onClick={() => setFormStep((prev) => (prev + 1) as any)}
@@ -949,13 +1161,24 @@ export default function App() {
       {/* ── MODAL: FICHA DETALHADA DO ALUNO ─────────────────────────── */}
       {selectedMember && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-950 border border-slate-800 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4 text-xs">
+          <div className="bg-slate-950 border border-slate-800 rounded-2xl max-w-lg w-full p-5 shadow-2xl space-y-4 text-xs">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div className="flex items-center gap-3">
                 <img src={selectedMember.avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover border border-slate-800" />
                 <div>
-                  <h3 className="text-sm font-bold text-white">{selectedMember.name}</h3>
-                  <p className="text-[11px] text-slate-400">CPF: {selectedMember.cpf}</p>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-white">{selectedMember.name}</h3>
+                    {!selectedMember.active ? (
+                      <span className="px-2 py-0.5 text-[10px] rounded bg-slate-800 text-slate-400 border border-slate-700 font-semibold">
+                        Desabilitado
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 text-[10px] rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">
+                        Ativo
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-400">CPF: {selectedMember.cpf} • {selectedMember.email}</p>
                 </div>
               </div>
               <button onClick={() => setSelectedMember(null)} className="text-slate-400 hover:text-white">
@@ -964,6 +1187,7 @@ export default function App() {
             </div>
 
             <div className="space-y-3">
+              {/* Plano e Status */}
               <div className="p-3 bg-slate-900 rounded-lg space-y-1.5">
                 <div className="flex items-center justify-between">
                   <span className="text-slate-400">Plano Atual:</span>
@@ -972,25 +1196,43 @@ export default function App() {
                 <div className="flex items-center justify-between">
                   <span className="text-slate-400">Status de Pagamento:</span>
                   <span className={`font-semibold ${selectedMember.status === 'ACTIVE' ? 'text-emerald-400' : 'text-rose-400'}`}>
-                    {selectedMember.status === 'ACTIVE' ? 'Em dia (Catraca Liberada)' : 'Atrasado (Catraca Bloqueada)'}
+                    {selectedMember.status === 'ACTIVE' ? 'Em dia (Liberado)' : 'Atrasado (Bloqueado)'}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-slate-400">Vencimento da Mensalidade:</span>
-                  <span className="text-slate-200">Dia {selectedMember.dueDay} (Vence em {selectedMember.dueDate})</span>
+                  <span className="text-slate-200">Todo dia {selectedMember.dueDay} (Próximo: {selectedMember.dueDate})</span>
                 </div>
               </div>
 
+              {/* Endereço */}
+              <div className="p-3 bg-slate-900 rounded-lg space-y-1.5">
+                <p className="text-slate-400 font-medium flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-emerald-400" /> Endereço Residencial:
+                </p>
+                <p className="text-slate-200">
+                  {selectedMember.street ? `${selectedMember.street}, nº ${selectedMember.number || 'S/N'}` : 'Rua não informada'} 
+                  {selectedMember.complement ? ` (${selectedMember.complement})` : ''}
+                </p>
+                <p className="text-slate-400 text-[11px]">
+                  {selectedMember.neighborhood ? `${selectedMember.neighborhood} • ` : ''}
+                  {selectedMember.city ? `${selectedMember.city} - ${selectedMember.state}` : 'Cidade não informada'}
+                  {selectedMember.postalCode ? ` • CEP: ${selectedMember.postalCode}` : ''}
+                </p>
+              </div>
+
+              {/* Contatos & Emergência */}
               <div className="p-3 bg-slate-900 rounded-lg space-y-1.5">
                 <p className="text-slate-400 font-medium">Contatos & Emergência:</p>
                 <p className="text-slate-200 flex items-center gap-2">
                   <Phone className="w-3 h-3 text-slate-400" /> WhatsApp: {selectedMember.phone}
                 </p>
                 <p className="text-slate-200 flex items-center gap-2">
-                  <AlertTriangle className="w-3 h-3 text-amber-400" /> Contato de Emergência: {selectedMember.emergencyContact || 'Não cadastrado'} ({selectedMember.emergencyPhone || 'Sem telefone'})
+                  <AlertTriangle className="w-3 h-3 text-amber-400" /> Emergência: {selectedMember.emergencyContact || 'Não cadastrado'} ({selectedMember.emergencyPhone || 'Sem telefone'})
                 </p>
               </div>
 
+              {/* Ficha Médica */}
               <div className="p-3 bg-slate-900 rounded-lg space-y-1">
                 <p className="text-slate-400 font-medium">Ficha Médica / Observações:</p>
                 <p className="text-slate-300 text-[11px] leading-relaxed">
@@ -999,13 +1241,47 @@ export default function App() {
               </div>
             </div>
 
-            <div className="pt-2 border-t border-slate-800 flex justify-end">
+            {/* Ações da Ficha: Desabilitar / Reativar ou Excluir */}
+            <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
               <button
-                onClick={() => setSelectedMember(null)}
-                className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-medium"
+                type="button"
+                onClick={() => handleDeleteMember(selectedMember.id)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-rose-500/30 text-rose-400 hover:bg-rose-500/10 font-medium transition-colors"
               >
-                Fechar Ficha
+                <Trash2 className="w-3.5 h-3.5" />
+                Excluir Aluno
               </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleToggleMemberStatus(selectedMember.id)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border font-medium transition-colors ${
+                    selectedMember.active
+                      ? 'border-amber-500/30 text-amber-400 hover:bg-amber-500/10'
+                      : 'border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10'
+                  }`}
+                >
+                  {selectedMember.active ? (
+                    <>
+                      <UserX className="w-3.5 h-3.5" />
+                      Desabilitar Aluno
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      Reativar Aluno
+                    </>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setSelectedMember(null)}
+                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-medium"
+                >
+                  Fechar
+                </button>
+              </div>
             </div>
           </div>
         </div>

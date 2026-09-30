@@ -50,6 +50,29 @@ export class AccessService {
       };
     }
 
+    if (!user.active) {
+      const checkIn = await this.prisma.checkIn.create({
+        data: {
+          userId: user.id,
+          deviceId: deviceId || 'Catraca Principal',
+          status: 'DENIED',
+          reason: 'Acesso Bloqueado • Matrícula Desabilitada/Trancada',
+        },
+      });
+
+      return {
+        allowed: false,
+        reason: 'Acesso Bloqueado • Matrícula Desabilitada/Trancada',
+        user: {
+          id: user.id,
+          name: user.name,
+          facialPhotoUrl: user.facialPhotoUrl,
+        },
+        checkInId: checkIn.id,
+        timestamp: checkIn.createdAt,
+      };
+    }
+
     const now = new Date();
     // Verificar se existe assinatura ativa e dentro da vigência
     const activeSub = user.subscriptions.find(

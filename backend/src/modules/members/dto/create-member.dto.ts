@@ -53,4 +53,34 @@ export class CreateMemberDto {
   @IsOptional()
   @IsString()
   planId?: string;
+
+  // Endereço
+  @IsOptional()
+  @IsString()
+  postalCode?: string;
+
+  @IsOptional()
+  @IsString()
+  street?: string;
+
+  @IsOptional()
+  @IsString()
+  number?: string;
+
+  @IsOptional()
+  @IsString()
+  complement?: string;
+
+  @IsOptional()
+  @IsString()
+  neighborhood?: string;
+
+  @IsOptional()
+  @IsString()
+  city?: string;
+
+  @IsOptional()
+  @IsString()
+  state?: string;
 }
+

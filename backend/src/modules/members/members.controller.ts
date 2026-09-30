@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Put } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, Patch, Delete } from '@nestjs/common';
 import { MembersService } from './members.service.js';
 import { CreateMemberDto } from './dto/create-member.dto.js';
 
@@ -28,4 +28,15 @@ export class MembersController {
   ) {
     return this.membersService.updateFacialData(id, body.facialId, body.facialPhotoUrl);
   }
+
+  @Patch(':id/toggle-status')
+  async toggleStatus(@Param('id') id: string) {
+    return this.membersService.toggleActive(id);
+  }
+
+  @Delete(':id')
+  async remove(@Param('id') id: string) {
+    return this.membersService.remove(id);
+  }
 }
+

@@ -33,6 +33,14 @@ export class MembersService {
         emergencyPhone: dto.emergencyPhone,
         medicalNotes: dto.medicalNotes,
         dueDay: dto.dueDay || 10,
+        postalCode: dto.postalCode,
+        street: dto.street,
+        number: dto.number,
+        complement: dto.complement,
+        neighborhood: dto.neighborhood,
+        city: dto.city,
+        state: dto.state,
+        active: true,
         passwordHash: 'default_hash_for_member', // Pode ser gerado ou redefinido no primeiro acesso
         facialId: dto.facialId,
         facialPhotoUrl: dto.facialPhotoUrl,
@@ -103,4 +111,22 @@ export class MembersService {
       },
     });
   }
+
+  async toggleActive(id: string) {
+    const user = await this.findOne(id);
+    return this.prisma.user.update({
+      where: { id },
+      data: {
+        active: !user.active,
+      },
+    });
+  }
+
+  async remove(id: string) {
+    await this.findOne(id);
+    return this.prisma.user.delete({
+      where: { id },
+    });
+  }
 }
+
